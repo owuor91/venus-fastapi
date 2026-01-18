@@ -298,7 +298,40 @@ The Profile model (`app/models/profile.py`) includes:
 
 ### Running Tests
 
-(Add test instructions when tests are added)
+The project uses `pytest` for testing. To run tests:
+
+1. **Install test dependencies** (if not already installed):
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run all tests**:
+   ```bash
+   pytest
+   ```
+
+3. **Run tests with coverage**:
+   ```bash
+   pytest --cov=app --cov-report=html
+   ```
+
+4. **Run specific test file**:
+   ```bash
+   pytest tests/test_auth.py
+   ```
+
+5. **Run specific test**:
+   ```bash
+   pytest tests/test_auth.py::TestRegistration::test_register_all_params_present
+   ```
+
+**Test Structure:**
+- `tests/test_auth.py` - Tests for registration and login endpoints
+- `tests/test_profile.py` - Tests for profile completion endpoint
+- `tests/test_matches.py` - Tests for matches endpoints
+- `tests/conftest.py` - Shared test fixtures and configuration
+
+Tests use an in-memory SQLite database for fast, isolated test execution.
 
 ## License
 
