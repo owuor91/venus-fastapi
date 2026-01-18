@@ -6,23 +6,33 @@ from pydantic import BaseModel, EmailStr
 
 class UserBase(BaseModel):
     email: EmailStr
+    first_name: str
+    last_name: str
 
 
 class UserCreate(UserBase):
     password: str
+    avatar_url: Optional[str] = None
+    fcm_token: Optional[str] = None
     created_by: str
     updated_by: str
 
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    fcm_token: Optional[str] = None
     updated_by: str
     active: Optional[bool] = None
     meta: Optional[Dict[str, Any]] = None
 
 
 class UserInDB(UserBase):
-    id: UUID
+    user_id: UUID
+    avatar_url: Optional[str] = None
+    fcm_token: Optional[str] = None
     date_created: datetime
     date_updated: datetime
     created_by: str

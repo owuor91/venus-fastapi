@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
-import uuid
 from sqlalchemy import Column, DateTime, String, Boolean, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Session
 from sqlalchemy import event
@@ -13,10 +11,10 @@ class BaseModel(Base):
     """
     Abstract base model with common fields for all models.
     All models should inherit from this class.
+    Note: Models must define their own primary key (e.g., user_id, profile_id).
     """
     __abstract__ = True
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     date_created = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     date_updated = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     created_by = Column(String, nullable=False)
