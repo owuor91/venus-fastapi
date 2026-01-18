@@ -120,6 +120,116 @@ venus-fastapi/
 
    The API will be available at `http://localhost:8000`
 
+## Docker Setup
+
+### Prerequisites
+- Docker and Docker Compose installed on your system
+
+### Quick Start with Docker
+
+1. **Build and start services**:
+   ```bash
+   docker-compose up --build
+   # or with newer Docker: docker compose up --build
+   ```
+   
+   **Note:** Database migrations run automatically on container startup. The entrypoint script waits for the database to be ready, then runs `alembic upgrade head` before starting the FastAPI server.
+
+2. **Access the API**:
+   - API: `http://localhost:8000`
+   - Swagger UI: `http://localhost:8000/docs`
+   - ReDoc: `http://localhost:8000/redoc`
+
+### Docker Commands
+
+- **Start services in background**:
+  ```bash
+  docker-compose up -d
+  # or: docker compose up -d
+  ```
+
+- **View logs**:
+  ```bash
+  docker-compose logs -f web
+  # or: docker compose logs -f web
+  ```
+
+- **Stop services**:
+  ```bash
+  docker-compose down
+  # or: docker compose down
+  ```
+
+- **Stop and remove volumes** (clears database data):
+  ```bash
+  docker-compose down -v
+  # or: docker compose down -v
+  ```
+
+- **Run migrations manually** (migrations run automatically on startup, but you can run them manually if needed):
+  ```bash
+  docker-compose exec web alembic upgrade head
+  # or: docker compose exec web alembic upgrade head
+  ```
+
+- **Create a new migration**:
+  ```bash
+  docker-compose exec web alembic revision --autogenerate -m "Description"
+  # or: docker compose exec web alembic revision --autogenerate -m "Description"
+  ```
+
+- **Access database**:
+  ```bash
+  docker-compose exec db psql -U venus_fastapi -d venus_fastapi
+  # or: docker compose exec db psql -U venus_fastapi -d venus_fastapi
+  ```
+
+- **Run tests**:
+  ```bash
+  docker-compose exec web pytest
+  # or: docker compose exec web pytest
+  ```
+
+### Environment Variables
+
+The docker-compose.yml supports environment variables from your `.env` file. Make sure your `.env` file includes:
+
+```env
+# Database (used by docker-compose for PostgreSQL service)
+POSTGRES_USER=venus_fastapi
+POSTGRES_PASSWORD=
+POSTGRES_DB=venus_fastapi
+
+# Application (used by FastAPI app)
+DATABASE_URL=postgresql://venus_fastapi@db:5432/venus_fastapi
+SECRET_KEY=your-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# AWS S3
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=your-bucket
+MAX_PHOTO_SIZE_MB=10
+```
+
+**Note:** The `DATABASE_URL` in docker-compose uses `db` as the hostname (the PostgreSQL service name) instead of `localhost`.
+
+### Development vs Production
+
+**Development mode (default):**
+- Code is mounted as volume (changes reflect immediately)
+- `.env` file is mounted
+- Hot-reload enabled (`--reload` flag)
+- Database data persists in Docker volume
+
+**Production mode:**
+- Remove volume mounts from docker-compose.yml
+- Remove `--reload` flag from command
+- Use environment variables or secrets management
+- Consider using multi-stage Dockerfile for smaller image size
+
 ## API Documentation
 
 Once the server is running, you can access:
