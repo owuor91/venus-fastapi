@@ -14,6 +14,13 @@ class ProfileBase(BaseModel):
     online: bool = True
 
 
+class ProfileCompletionRequest(BaseModel):
+    phone_number: str
+    gender: GenderEnum
+    date_of_birth: date
+    bio: str
+
+
 class ProfileCreate(ProfileBase):
     user_id: UUID
     created_by: str

@@ -10,12 +10,22 @@ class UserBase(BaseModel):
     last_name: str
 
 
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
 class UserCreate(UserBase):
     password: str
     avatar_url: Optional[str] = None
     fcm_token: Optional[str] = None
-    created_by: str
-    updated_by: str
 
 
 class UserUpdate(BaseModel):

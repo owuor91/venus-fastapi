@@ -20,7 +20,7 @@ class BaseModel(Base):
     created_by = Column(String, nullable=False)
     updated_by = Column(String, nullable=False)
     active = Column(Boolean, nullable=False, default=True)
-    meta = Column(JSON, nullable=True, default=dict)
+    meta = Column(JSON, nullable=True, default=lambda: {})
 
     @declared_attr
     def __tablename__(cls):
