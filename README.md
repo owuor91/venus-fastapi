@@ -12,9 +12,11 @@ A REST API for a dating app built with FastAPI, PostgreSQL, Alembic, and JWT aut
   - Note: BaseModel does not include an `id` field; each model defines its own primary key (e.g., user_id, profile_id)
 - User model with authentication fields (user_id, first_name, last_name, email, avatar_url, fcm_token)
 - Profile model with one-to-one relationship to User (phone_number, gender, date_of_birth, bio, online)
+- Photo model for user photo uploads with AWS S3 integration
 - GenderEnum for gender selection (MALE, FEMALE)
 - Soft delete support via `active` field
 - Pydantic schemas for request/response validation
+- AWS S3 integration for photo storage
 
 ## Project Structure
 
@@ -29,22 +31,29 @@ venus-fastapi/
 │   │   ├── base.py            # BaseModel (common fields for all models, no id field)
 │   │   ├── enums.py           # GenderEnum (MALE, FEMALE)
 │   │   ├── user.py             # User model (user_id as primary key)
-│   │   └── profile.py          # Profile model (profile_id as primary key, one-to-one with User)
+│   │   ├── profile.py          # Profile model (profile_id as primary key, one-to-one with User)
+│   │   ├── match.py            # Match model (match_id as primary key)
+│   │   └── photo.py            # Photo model (photo_id as primary key)
 │   ├── schemas/                # Pydantic schemas
 │   │   ├── __init__.py
 │   │   ├── user.py             # User schemas (RegisterRequest, LoginRequest, etc.)
 │   │   ├── profile.py          # Profile schemas (ProfileCompletionRequest, etc.)
+│   │   ├── match.py            # Match schemas (MatchCreateRequest, Match, etc.)
+│   │   ├── photo.py            # Photo schemas (Photo, etc.)
 │   │   └── token.py            # Token schemas (LoginResponse, etc.)
 │   ├── api/                    # API routes
 │   │   ├── __init__.py
 │   │   ├── deps.py             # Dependencies (auth, database session)
 │   │   └── v1/                 # API v1 routes
 │   │       ├── __init__.py
-│   │       └── auth.py         # Authentication endpoints (register, login, profile completion)
+│   │       ├── auth.py         # Authentication endpoints (register, login, profile completion)
+│   │       ├── matches.py      # Match endpoints
+│   │       └── photos.py       # Photo upload endpoints
 │   └── core/                   # Core functionality
 │       ├── __init__.py
 │       ├── security.py         # JWT and password hashing
-│       └── config.py           # Settings management
+│       ├── config.py           # Application settings
+│       └── s3_helper.py        # AWS S3 upload helper functions
 ├── alembic/                    # Alembic configuration
 │   ├── versions/               # Migration versions
 │   ├── env.py
@@ -201,6 +210,19 @@ Once the server is running, you can access:
   - Returns all active matches where the current user is either `my_id` or `partner_id`
   - Only returns matches where `active == True`
 
+### Photos
+
+- **POST** `/api/v1/photos` - Upload a photo to S3
+  - Requires authentication
+  - Request: Multipart form data with field name `image`
+  - Accepted file types: `png`, `jpg`, `jpeg`, `gif`
+  - Maximum file size: 10MB (configurable via `MAX_PHOTO_SIZE_MB` in `.env`)
+  - Note: `user_id` is automatically set from the authenticated user
+  - Note: `created_by` and `updated_by` are automatically set to the authenticated user's user_id
+  - Returns: Photo object with `photo_url` (public S3 URL)
+  - The uploaded photo is stored in S3 at: `users/{user_id}/photos/{photo_id}.{ext}`
+  - Photos are uploaded with `public-read` ACL for public access
+
 ### Protected Endpoints
 
 All protected endpoints require authentication via Bearer token in the Authorization header:
@@ -277,6 +299,22 @@ The Profile model (`app/models/profile.py`) includes:
 - One-to-one relationship with User (enforced by unique constraint on `user_id`)
 - `phone_number` must be unique across all profiles
 
+### Photo Model
+
+The Photo model (`app/models/photo.py`) includes:
+- `photo_id`: UUID (primary key)
+- `user_id`: UUID (foreign key to User, required)
+- `photo_url`: String (required, S3 URL of the uploaded photo)
+- `verified`: Boolean (default: False)
+- `user`: Relationship to User model
+- Inherits all BaseModel fields
+
+**Features:**
+- Photos are uploaded to AWS S3 with public-read ACL
+- S3 path structure: `users/{user_id}/photos/{photo_id}.{ext}`
+- File validation: only png, jpg, jpeg, gif allowed
+- File size limit: configurable (default 10MB)
+
 ## Development
 
 ### Code Structure
@@ -286,14 +324,23 @@ The Profile model (`app/models/profile.py`) includes:
   - `enums.py`: GenderEnum
   - `user.py`: User model
   - `profile.py`: Profile model
+  - `match.py`: Match model
+  - `photo.py`: Photo model
 - `app/schemas/`: Pydantic schemas for request/response validation
   - `user.py`: User schemas (RegisterRequest, LoginRequest, User, etc.)
   - `profile.py`: Profile schemas (ProfileCompletionRequest, Profile, etc.)
+  - `match.py`: Match schemas (MatchCreateRequest, Match, etc.)
+  - `photo.py`: Photo schemas (Photo, etc.)
   - `token.py`: Token schemas (LoginResponse, Token, etc.)
 - `app/api/`: API route handlers
   - `deps.py`: Dependencies (database session, authentication)
   - `v1/auth.py`: Authentication endpoints
-- `app/core/`: Core functionality (config, security)
+  - `v1/matches.py`: Match endpoints
+  - `v1/photos.py`: Photo upload endpoints
+- `app/core/`: Core functionality (config, security, S3)
+  - `config.py`: Application settings (database, JWT, AWS S3)
+  - `security.py`: JWT and password hashing
+  - `s3_helper.py`: AWS S3 upload helper functions
 - `app/database.py`: Database connection and session management
 
 ### Running Tests
@@ -329,6 +376,7 @@ The project uses `pytest` for testing. To run tests:
 - `tests/test_auth.py` - Tests for registration and login endpoints
 - `tests/test_profile.py` - Tests for profile completion endpoint
 - `tests/test_matches.py` - Tests for matches endpoints
+- `tests/test_photos.py` - Tests for photo upload endpoints
 - `tests/conftest.py` - Shared test fixtures and configuration
 
 Tests use an in-memory SQLite database for fast, isolated test execution.
