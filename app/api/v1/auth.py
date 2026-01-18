@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -101,9 +101,10 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     return response_data
 
 
-@router.post("/profile/complete", response_model=ProfileSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/profile/complete", response_model=ProfileSchema)
 def complete_profile(
     profile_data: ProfileCompletionRequest,
+    response: Response,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -111,6 +112,7 @@ def complete_profile(
     Complete or update user profile.
     Requires authentication.
     Requires: phone_number, gender, date_of_birth, bio
+    Returns 201 Created for new profiles, 200 OK for updates.
     """
     # Check if phone number is already taken by another user
     existing_profile_with_phone = db.query(Profile).filter(
@@ -137,6 +139,7 @@ def complete_profile(
         
         db.commit()
         db.refresh(existing_profile)
+        response.status_code = status.HTTP_200_OK
         return existing_profile
     else:
         # Create new profile
@@ -152,4 +155,5 @@ def complete_profile(
         db.add(db_profile)
         db.commit()
         db.refresh(db_profile)
+        response.status_code = status.HTTP_201_CREATED
         return db_profile
