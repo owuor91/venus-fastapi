@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = ""
     MAX_PHOTO_SIZE_MB: int = 10
     
+    # Firebase
+    FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
+    
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=True,
