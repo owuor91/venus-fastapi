@@ -2,8 +2,13 @@
 set -e
 
 # Wait for database to be ready
+# Use host.docker.internal to connect to host's PostgreSQL
 echo "Waiting for database to be ready..."
-while ! pg_isready -h db -U ${POSTGRES_USER:-venus_fastapi} -d ${POSTGRES_DB:-venus_fastapi} > /dev/null 2>&1; do
+DB_HOST=${DB_HOST:-host.docker.internal}
+DB_USER=${DATABASE_USER:-owuor}
+DB_NAME=${POSTGRES_DB:-venus_fastapi}
+
+while ! pg_isready -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} > /dev/null 2>&1; do
   echo "Database is unavailable - sleeping"
   sleep 1
 done

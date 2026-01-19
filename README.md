@@ -218,17 +218,27 @@ MAX_PHOTO_SIZE_MB=10
 
 ### Development vs Production
 
-**Development mode (default):**
+**Development mode (current docker-compose.yml):**
+- Connects to host's PostgreSQL via `host.docker.internal`
+- Uses the same database as local development
 - Code is mounted as volume (changes reflect immediately)
 - `.env` file is mounted
 - Hot-reload enabled (`--reload` flag)
-- Database data persists in Docker volume
+- Changes persist because both local and Docker use the same database
 
-**Production mode:**
-- Remove volume mounts from docker-compose.yml
-- Remove `--reload` flag from command
+**Production mode (use docker-compose.prod.yml):**
+- Uses separate PostgreSQL container (isolated database)
+- No volume mounts for code (code baked into image)
+- No `--reload` flag (uses multiple workers)
+- Database data persists in Docker volume
 - Use environment variables or secrets management
-- Consider using multi-stage Dockerfile for smaller image size
+- Multiple workers for better performance
+- Use: `docker compose -f docker-compose.prod.yml up -d`
+
+**For Managed Database (AWS RDS, Cloud SQL, etc.):**
+- Don't include `db` service in docker-compose
+- Set `DATABASE_URL` to your managed database connection string
+- Example: `DATABASE_URL=postgresql://user:pass@rds-instance.region.rds.amazonaws.com:5432/dbname`
 
 ## API Documentation
 
