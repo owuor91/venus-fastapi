@@ -175,24 +175,26 @@ def initiate_stk_push(
                 logger.error("Wrong credentials error - Please verify:")
                 logger.error(f"  - SHORT_CODE: {settings.SHORT_CODE}")
                 passkey_status = (
-            'SET' if settings.DARAJA_PASSKEY else 'NOT SET'
-        )
-        passkey_length = (
-            len(settings.DARAJA_PASSKEY)
-            if settings.DARAJA_PASSKEY else 0
-        )
-        logger.error(
-            f"  - DARAJA_PASSKEY: {passkey_status} "
-            f"(length: {passkey_length})"
-        )
+                    'SET' if settings.DARAJA_PASSKEY else 'NOT SET'
+                )
+                passkey_length = (
+                    len(settings.DARAJA_PASSKEY)
+                    if settings.DARAJA_PASSKEY else 0
+                )
+                logger.error(
+                    f"  - DARAJA_PASSKEY: {passkey_status} "
+                    f"(length: {passkey_length})"
+                )
                 consumer_key_status = (
-            'SET' if settings.CONSUMER_KEY else 'NOT SET'
-        )
-        logger.error(f"  - CONSUMER_KEY: {consumer_key_status}")
+                    'SET' if settings.CONSUMER_KEY else 'NOT SET'
+                )
+                logger.error(f"  - CONSUMER_KEY: {consumer_key_status}")
                 consumer_secret_status = (
-            'SET' if settings.CONSUMER_SECRET else 'NOT SET'
-        )
-        logger.error(f"  - CONSUMER_SECRET: {consumer_secret_status}")
+                    'SET' if settings.CONSUMER_SECRET else 'NOT SET'
+                )
+                logger.error(
+                    f"  - CONSUMER_SECRET: {consumer_secret_status}"
+                )
 
             return response_data, response.status_code
 
