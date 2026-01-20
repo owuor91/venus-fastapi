@@ -30,14 +30,17 @@ def validate_file_extension(filename: str) -> str:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must have an extension"
         )
-    
+
     ext = filename.rsplit('.', 1)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            detail=(
+                f"File type not allowed. "
+                f"Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            )
         )
-    
+
     return ext
 
 
@@ -50,44 +53,47 @@ def validate_file_size(file: UploadFile) -> None:
     file.file.seek(0, os.SEEK_END)
     file_size = file.file.tell()
     file.file.seek(0)  # Reset file pointer
-    
+
     max_size_bytes = settings.MAX_PHOTO_SIZE_MB * 1024 * 1024
-    
+
     if file_size > max_size_bytes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File size exceeds maximum allowed size of {settings.MAX_PHOTO_SIZE_MB}MB"
+            detail=(
+                f"File size exceeds maximum allowed size of "
+                f"{settings.MAX_PHOTO_SIZE_MB}MB"
+            )
         )
 
 
 def upload_photo_to_s3(file: UploadFile, user_id: UUID, photo_id: UUID) -> str:
     """
     Upload a photo file to S3 and return the public URL.
-    
+
     Args:
         file: FastAPI UploadFile object
         user_id: UUID of the user uploading the photo
         photo_id: UUID of the photo record
-        
+
     Returns:
         str: Public URL of the uploaded photo
-        
+
     Raises:
         HTTPException: If file validation fails or S3 upload fails
     """
     # Validate file extension
     ext = validate_file_extension(file.filename)
-    
+
     # Validate file size
     validate_file_size(file)
-    
+
     # Generate S3 key
     s3_key = f"users/{user_id}/photos/{photo_id}.{ext}"
-    
+
     try:
         # Create S3 client
         s3_client = get_s3_client()
-        
+
         # Upload file to S3
         file.file.seek(0)  # Ensure we're at the beginning of the file
         s3_client.upload_fileobj(
@@ -99,12 +105,15 @@ def upload_photo_to_s3(file: UploadFile, user_id: UUID, photo_id: UUID) -> str:
                 'ACL': 'public-read'  # Make the object publicly readable
             }
         )
-        
+
         # Generate public URL
-        photo_url = f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
-        
+        photo_url = (
+            f"https://{settings.S3_BUCKET_NAME}.s3."
+            f"{settings.AWS_REGION}.amazonaws.com/{s3_key}"
+        )
+
         return photo_url
-        
+
     except ClientError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

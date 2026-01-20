@@ -1,11 +1,11 @@
 import uuid
-from datetime import date
-from sqlalchemy import Column, String, Boolean, Date, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import (
+    Column, String, Boolean, Date, ForeignKey, UniqueConstraint, JSON
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
-from app.models.enums import GenderEnum
 
 
 class Profile(BaseModel):
@@ -17,19 +17,33 @@ class Profile(BaseModel):
     """
     __tablename__ = "profiles"
 
-    profile_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), unique=True, nullable=False, index=True)
+    profile_id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        unique=True,
+        nullable=False,
+        index=True
+    )
     phone_number = Column(String, unique=True, nullable=False, index=True)
-    gender = Column(String, nullable=False)  # Using String to store GenderEnum value
+    # Using String to store GenderEnum value
+    gender = Column(String, nullable=False)
     date_of_birth = Column(Date, nullable=False)
     bio = Column(String, nullable=False)
     online = Column(Boolean, nullable=False, default=True)
-    current_coordinates = Column(String, nullable=True)  # Format: "lat,lng" e.g. "-1.2921,36.8219"
-    preferences = Column(JSON, nullable=True)  # Format: {"min_age": int, "max_age": int, "distance": float}
-    
+    # Format: "lat,lng" e.g. "-1.2921,36.8219"
+    current_coordinates = Column(String, nullable=True)
+    # Format: {"min_age": int, "max_age": int, "distance": float}
+    preferences = Column(JSON, nullable=True)
+
     # Relationship back to User
     user = relationship("User", back_populates="profile")
-    
+
     # Unique constraint on user_id and phone_number
     __table_args__ = (
         UniqueConstraint('user_id', name='uq_profile_user_id'),
@@ -37,4 +51,7 @@ class Profile(BaseModel):
     )
 
     def __repr__(self):
-        return f"<Profile(profile_id='{self.profile_id}', user_id='{self.user_id}')>"
+        return (
+            f"<Profile(profile_id='{self.profile_id}', "
+            f"user_id='{self.user_id}')>"
+        )

@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, DateTime, String, Boolean, JSON
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Session
 from sqlalchemy import event
 
 from app.database import Base
@@ -15,8 +14,16 @@ class BaseModel(Base):
     """
     __abstract__ = True
 
-    date_created = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
-    date_updated = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    date_created = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+    date_updated = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
     created_by = Column(String, nullable=False)
     updated_by = Column(String, nullable=False)
     active = Column(Boolean, nullable=False, default=True)

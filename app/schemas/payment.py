@@ -24,7 +24,8 @@ class PaymentCreateRequest(BaseModel):
     payment_ref: Optional[str] = None
     amount: float
     plan_id: UUID
-    phone_number: Optional[str] = None  # Used for STK push initiation, not stored in database
+    # Used for STK push initiation, not stored in database
+    phone_number: Optional[str] = None
     mpesa_transaction_id: Optional[str] = None
     transaction_request: Optional[Dict[str, Any]] = None
     transaction_response: Optional[Dict[str, Any]] = None

@@ -26,30 +26,30 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('last_name', sa.String(), nullable=True))
     op.add_column('users', sa.Column('avatar_url', sa.String(), nullable=True))
     op.add_column('users', sa.Column('fcm_token', sa.String(), nullable=True))
-    
+
     # Copy id to user_id for existing records (if any)
     op.execute("UPDATE users SET user_id = id WHERE user_id IS NULL")
-    
+
     # Set defaults for first_name and last_name if they're None (for existing records)
     op.execute("UPDATE users SET first_name = '' WHERE first_name IS NULL")
     op.execute("UPDATE users SET last_name = '' WHERE last_name IS NULL")
-    
+
     # Drop old id column and its index first (before making user_id primary key)
     op.drop_index('ix_users_id', table_name='users')
     op.drop_constraint('users_pkey', 'users', type_='primary')
     op.drop_column('users', 'id')
-    
+
     # Now make user_id and other required fields non-nullable
     op.alter_column('users', 'user_id', nullable=False)
     op.alter_column('users', 'first_name', nullable=False)
     op.alter_column('users', 'last_name', nullable=False)
-    
+
     # Create primary key constraint on user_id
     op.create_primary_key('users_pkey', 'users', ['user_id'])
-    
+
     # Create indexes
     op.create_index(op.f('ix_users_user_id'), 'users', ['user_id'], unique=False)
-    
+
     # Create profiles table (now that user_id is a proper primary key)
     op.create_table('profiles',
     sa.Column('profile_id', sa.UUID(), nullable=False),
