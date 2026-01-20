@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, matches, photos
+from app.api.v1 import auth, matches, photos, payments, payment_plans
 from app.core.config import settings
 
 app = FastAPI(
@@ -23,6 +23,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(matches.router, prefix="/api/v1/matches", tags=["matches"])
 app.include_router(photos.router, prefix="/api/v1/photos", tags=["photos"])
+app.include_router(payments.router, prefix="/api/v1/payments", tags=["payments"])
+app.include_router(payment_plans.router, prefix="/api/v1/payment-plans", tags=["payment-plans"])
 
 
 @app.get("/")

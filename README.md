@@ -13,7 +13,9 @@ A REST API for a dating app built with FastAPI, PostgreSQL, Alembic, and JWT aut
 - User model with authentication fields (user_id, first_name, last_name, email, avatar_url, fcm_token)
 - Profile model with one-to-one relationship to User (phone_number, gender, date_of_birth, bio, online)
 - Photo model for user photo uploads with AWS S3 integration
+- Payment and PaymentPlan models for subscription management
 - GenderEnum for gender selection (MALE, FEMALE)
+- PlanEnum for payment plan types (MONTHLY, SEMI_ANNUAL, ANNUAL, VIP, TEST)
 - Soft delete support via `active` field
 - Pydantic schemas for request/response validation
 - AWS S3 integration for photo storage
@@ -212,9 +214,20 @@ AWS_SECRET_ACCESS_KEY=your-secret
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your-bucket
 MAX_PHOTO_SIZE_MB=10
+
+# Safaricom Daraja M-Pesa
+DARAJA_CREDENTIALS_URL=https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
+CONSUMER_KEY=your-consumer-key
+CONSUMER_SECRET=your-consumer-secret
+DARAJA_STK_PUSH_URL=https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
+SHORT_CODE=your-short-code
+DARAJA_PASSKEY=your-daraja-passkey
+DARAJA_CALLBACK_URL=https://your-domain.com/api/v1/payments/callback
 ```
 
 **Note:** The `DATABASE_URL` in docker-compose uses `db` as the hostname (the PostgreSQL service name) instead of `localhost`.
+
+**Note:** For production Daraja integration, use production URLs instead of sandbox URLs.
 
 ### Development vs Production
 
@@ -343,6 +356,51 @@ Once the server is running, you can access:
   - The uploaded photo is stored in S3 at: `users/{user_id}/photos/{photo_id}.{ext}`
   - Photos are uploaded with `public-read` ACL for public access
 
+### Payments
+
+- **POST** `/api/v1/payments` - Create a payment
+  - Requires authentication
+  - Request body: `PaymentCreateRequest` (payment_ref, payment_date, valid_until, amount, plan_id, mpesa_transaction_id, transaction_request, transaction_response)
+  - Note: `user_id` is automatically set from the authenticated user
+  - Note: `created_by` and `updated_by` are automatically set to the authenticated user's user_id
+  - Returns: Payment object
+
+- **GET** `/api/v1/payments` - Get user's payments
+  - Requires authentication
+  - Returns: List of active payments for the authenticated user
+  - Only returns payments where `active == True`
+
+- **GET** `/api/v1/payments/{payment_id}` - Get a specific payment
+  - Requires authentication
+  - Returns: Payment object
+  - Only returns payments belonging to the authenticated user
+
+- **PATCH** `/api/v1/payments/{payment_id}` - Update payment status
+  - Requires authentication
+  - Used for updating payment status (e.g., from payment callbacks/webhooks)
+  - Only allows updating payments belonging to the authenticated user
+  - Returns: Updated Payment object
+
+- **POST** `/api/v1/payments/initiate-stk` - Create payment and initiate STK push
+  - Requires authentication
+  - Request body: `PaymentCreateRequest` with `phone_number` field (required for STK push)
+  - Creates payment record and initiates M-Pesa STK push to customer's phone
+  - Returns: Payment object with STK push response
+  - Note: Payment record is created even if STK push fails
+
+- **POST** `/api/v1/payments/callback` - Daraja webhook callback (public)
+  - No authentication required (called by Daraja servers)
+  - Receives payment callback from Safaricom Daraja API
+  - Updates payment status, transaction details, and sends FCM notification
+  - Returns: Success/error status
+
+### Payment Plans
+
+- **GET** `/api/v1/payment-plans` - Get all payment plans
+  - No authentication required
+  - Returns: List of active payment plans
+  - Only returns plans where `active == True`
+
 ### Protected Endpoints
 
 All protected endpoints require authentication via Bearer token in the Authorization header:
@@ -435,32 +493,78 @@ The Photo model (`app/models/photo.py`) includes:
 - File validation: only png, jpg, jpeg, gif allowed
 - File size limit: configurable (default 10MB)
 
+### Payment Model
+
+The Payment model (`app/models/payment.py`) includes:
+- `payment_id`: UUID (primary key)
+- `user_id`: UUID (foreign key to User, required)
+- `payment_ref`: String (nullable, payment reference)
+- `payment_date`: DateTime (timezone-aware, required)
+- `valid_until`: DateTime (timezone-aware, required)
+- `amount`: Float (required)
+- `plan_id`: UUID (foreign key to PaymentPlan, required)
+- `mpesa_transaction_id`: String (nullable, for M-Pesa integration)
+- `transaction_request`: JSON (nullable, stores transaction request data)
+- `transaction_response`: JSON (nullable, stores transaction response data)
+- `transaction_callback`: JSON (nullable, stores callback data)
+- `transaction_status`: String (nullable, payment status)
+- `date_completed`: DateTime (timezone-aware, nullable)
+- `user`: Relationship to User model
+- `payment_plan`: Relationship to PaymentPlan model
+- Inherits all BaseModel fields
+
+**Features:**
+- Supports M-Pesa payment integration
+- Tracks transaction lifecycle (request, response, callback)
+- Links to payment plans for subscription management
+
+### PaymentPlan Model
+
+The PaymentPlan model (`app/models/payment_plan.py`) includes:
+- `plan_id`: UUID (primary key)
+- `plan`: Enum (required, PlanEnum: MONTHLY, SEMI_ANNUAL, ANNUAL, VIP, TEST)
+- `amount`: Float (required)
+- `months`: Integer (required, subscription duration in months)
+- `payments`: Relationship to Payment model
+- Inherits all BaseModel fields
+
+**Features:**
+- Defines subscription plans with pricing and duration
+- Supports multiple plan types (monthly, semi-annual, annual, VIP, test)
+
 ## Development
 
 ### Code Structure
 
 - `app/models/`: SQLAlchemy database models
   - `base.py`: BaseModel with common fields
-  - `enums.py`: GenderEnum
+  - `enums.py`: GenderEnum, PlanEnum
   - `user.py`: User model
   - `profile.py`: Profile model
   - `match.py`: Match model
   - `photo.py`: Photo model
+  - `payment.py`: Payment model
+  - `payment_plan.py`: PaymentPlan model
 - `app/schemas/`: Pydantic schemas for request/response validation
   - `user.py`: User schemas (RegisterRequest, LoginRequest, User, etc.)
   - `profile.py`: Profile schemas (ProfileCompletionRequest, Profile, etc.)
   - `match.py`: Match schemas (MatchCreateRequest, Match, etc.)
   - `photo.py`: Photo schemas (Photo, etc.)
+  - `payment.py`: Payment schemas (PaymentCreateRequest, Payment, etc.)
+  - `payment_plan.py`: PaymentPlan schemas (PaymentPlan, etc.)
   - `token.py`: Token schemas (LoginResponse, Token, etc.)
 - `app/api/`: API route handlers
   - `deps.py`: Dependencies (database session, authentication)
   - `v1/auth.py`: Authentication endpoints
   - `v1/matches.py`: Match endpoints
   - `v1/photos.py`: Photo upload endpoints
-- `app/core/`: Core functionality (config, security, S3)
-  - `config.py`: Application settings (database, JWT, AWS S3)
+  - `v1/payments.py`: Payment endpoints
+  - `v1/payment_plans.py`: Payment plan endpoints
+- `app/core/`: Core functionality (config, security, S3, Daraja)
+  - `config.py`: Application settings (database, JWT, AWS S3, Daraja)
   - `security.py`: JWT and password hashing
   - `s3_helper.py`: AWS S3 upload helper functions
+  - `daraja_helper.py`: Safaricom Daraja M-Pesa helper functions
 - `app/database.py`: Database connection and session management
 
 ### Running Tests

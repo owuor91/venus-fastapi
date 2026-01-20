@@ -14,6 +14,8 @@ from app.models.user import User
 from app.models.profile import Profile
 from app.models.match import Match
 from app.models.photo import Photo
+from app.models.payment import Payment
+from app.models.payment_plan import PaymentPlan
 from app.models.base import BaseModel
 
 # this is the Alembic Config object, which provides
