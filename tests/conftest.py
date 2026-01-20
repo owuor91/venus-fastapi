@@ -21,8 +21,12 @@ from app.main import app
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.match import Match
+from app.models.payment_plan import PaymentPlan
+from app.models.payment import Payment
+from app.models.enums import PlanEnum
 from app.core.security import get_password_hash, create_access_token
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
+from dateutil.relativedelta import relativedelta
 from app.core.config import settings
 
 # Create SQLite in-memory database for testing
@@ -120,3 +124,68 @@ def get_auth_headers(user_email: str):
         expires_delta=access_token_expires
     )
     return {"Authorization": f"Bearer {access_token}"}
+
+
+@pytest.fixture
+def test_payment_plan(db_session, test_user):
+    """Create a test payment plan for testing."""
+    plan = PaymentPlan(
+        plan=PlanEnum.MONTHLY,
+        amount=100.0,
+        months=1,
+        created_by=str(test_user.user_id),
+        updated_by=str(test_user.user_id),
+        active=True
+    )
+    db_session.add(plan)
+    db_session.commit()
+    db_session.refresh(plan)
+    return plan
+
+
+@pytest.fixture
+def test_payment(db_session, test_user, test_payment_plan):
+    """Create a test payment linked to test_user and test_payment_plan."""
+    payment_date = datetime.now(timezone.utc)
+    valid_until = payment_date + relativedelta(months=test_payment_plan.months)
+    
+    payment = Payment(
+        user_id=test_user.user_id,
+        payment_ref=None,
+        payment_date=payment_date,
+        valid_until=valid_until,
+        amount=test_payment_plan.amount,
+        plan_id=test_payment_plan.plan_id,
+        mpesa_transaction_id=None,
+        transaction_request=None,
+        transaction_response=None,
+        transaction_callback=None,
+        transaction_status=None,
+        date_completed=None,
+        created_by=str(test_user.user_id),
+        updated_by=str(test_user.user_id),
+        active=True
+    )
+    db_session.add(payment)
+    db_session.commit()
+    db_session.refresh(payment)
+    return payment
+
+
+@pytest.fixture
+def test_user_with_fcm(db_session):
+    """Create a test user with FCM token for notification tests."""
+    hashed_password = get_password_hash("testpassword123")
+    user = User(
+        email="fcmuser@example.com",
+        first_name="FCM",
+        last_name="User",
+        hashed_password=hashed_password,
+        fcm_token="test_fcm_token_12345",
+        created_by="fcmuser@example.com",
+        updated_by="fcmuser@example.com",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
