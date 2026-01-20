@@ -12,6 +12,8 @@ class ProfileBase(BaseModel):
     date_of_birth: date
     bio: str
     online: bool = True
+    current_coordinates: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
 
 
 class ProfileCompletionRequest(BaseModel):
@@ -19,6 +21,12 @@ class ProfileCompletionRequest(BaseModel):
     gender: GenderEnum
     date_of_birth: date
     bio: str
+
+
+class ProfileLocationUpdate(BaseModel):
+    """Request schema for updating profile location."""
+    profile_id: UUID
+    coordinates: str  # Format: "lat,lng" e.g. "-1.2921,36.8219"
 
 
 class ProfileCreate(ProfileBase):

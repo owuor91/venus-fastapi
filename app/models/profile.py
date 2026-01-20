@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from sqlalchemy import Column, String, Boolean, Date, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, Date, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -24,6 +24,8 @@ class Profile(BaseModel):
     date_of_birth = Column(Date, nullable=False)
     bio = Column(String, nullable=False)
     online = Column(Boolean, nullable=False, default=True)
+    current_coordinates = Column(String, nullable=True)  # Format: "lat,lng" e.g. "-1.2921,36.8219"
+    preferences = Column(JSON, nullable=True)  # Format: {"min_age": int, "max_age": int, "distance": float}
     
     # Relationship back to User
     user = relationship("User", back_populates="profile")
