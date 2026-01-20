@@ -13,7 +13,11 @@ from app.core.s3_helper import upload_photo_to_s3
 router = APIRouter()
 
 
-@router.post("", response_model=PhotoSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PhotoSchema,
+    status_code=status.HTTP_201_CREATED
+)
 def upload_photo(
     image: UploadFile = File(..., alias="image"),
     current_user: User = Depends(get_current_active_user),
@@ -28,13 +32,13 @@ def upload_photo(
     """
     # Generate photo_id
     photo_id = uuid.uuid4()
-    
+
     # Upload to S3
     try:
         photo_url = upload_photo_to_s3(image, current_user.user_id, photo_id)
     except HTTPException:
         raise  # Re-raise HTTP exceptions from s3_helper
-    
+
     # Create photo record in database
     db_photo = Photo(
         photo_id=photo_id,
@@ -44,11 +48,11 @@ def upload_photo(
         created_by=str(current_user.user_id),
         updated_by=str(current_user.user_id),
     )
-    
+
     db.add(db_photo)
     db.commit()
     db.refresh(db_photo)
-    
+
     return db_photo
 
 
@@ -64,7 +68,7 @@ def get_user_photos(
     """
     photos = db.query(Photo).filter(
         Photo.user_id == current_user.user_id,
-        Photo.active == True
+        Photo.active.is_(True)
     ).all()
-    
+
     return photos

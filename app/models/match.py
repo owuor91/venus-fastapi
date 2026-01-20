@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -14,18 +13,51 @@ class Match(BaseModel):
     """
     __tablename__ = "matches"
 
-    match_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    my_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
-    partner_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
-    thread_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    match_id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True
+    )
+    my_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=False,
+        index=True
+    )
+    partner_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=False,
+        index=True
+    )
+    thread_id = Column(
+        UUID(as_uuid=True),
+        nullable=False,
+        index=True
+    )
     last_message = Column(String, nullable=True)
     last_message_date = Column(DateTime(timezone=True), nullable=True)
-    sent_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True, index=True)
-    
+    sent_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=True,
+        index=True
+    )
+
     # Unique constraint on (my_id, partner_id, thread_id)
     __table_args__ = (
-        UniqueConstraint('my_id', 'partner_id', 'thread_id', name='uq_match_my_partner_thread'),
+        UniqueConstraint(
+            'my_id',
+            'partner_id',
+            'thread_id',
+            name='uq_match_my_partner_thread'
+        ),
     )
 
     def __repr__(self):
-        return f"<Match(match_id='{self.match_id}', my_id='{self.my_id}', partner_id='{self.partner_id}')>"
+        return (
+            f"<Match(match_id='{self.match_id}', "
+            f"my_id='{self.my_id}', "
+            f"partner_id='{self.partner_id}')>"
+        )

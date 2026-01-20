@@ -1,7 +1,7 @@
 """Change id column to UUID
 
 Revision ID: 0d1c3b14c44f
-Revises: 
+Revises:
 Create Date: 2026-01-18 12:15:01.134957
 
 """

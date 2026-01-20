@@ -11,7 +11,7 @@ A REST API for a dating app built with FastAPI, PostgreSQL, Alembic, and JWT aut
 - BaseModel with common fields (date_created, date_updated, created_by, updated_by, active, meta)
   - Note: BaseModel does not include an `id` field; each model defines its own primary key (e.g., user_id, profile_id)
 - User model with authentication fields (user_id, first_name, last_name, email, avatar_url, fcm_token)
-- Profile model with one-to-one relationship to User (phone_number, gender, date_of_birth, bio, online)
+- Profile model with one-to-one relationship to User (phone_number, gender, date_of_birth, bio, online, current_coordinates, preferences)
 - Photo model for user photo uploads with AWS S3 integration
 - Payment and PaymentPlan models for subscription management
 - GenderEnum for gender selection (MALE, FEMALE)
@@ -401,6 +401,27 @@ Once the server is running, you can access:
   - Returns: List of active payment plans
   - Only returns plans where `active == True`
 
+### Profiles
+
+- **POST** `/api/v1/profiles/location` - Update profile location
+  - Requires authentication
+  - Request body: `ProfileLocationUpdate` (profile_id, coordinates in format "lat,lng")
+  - Validates that the profile belongs to the authenticated user
+  - Validates coordinate format (lat between -90 and 90, lng between -180 and 180)
+  - Returns: `{"message": "location_updated"}`
+
+- **GET** `/api/v1/profiles/map` - Get nearby profiles for map view
+  - Requires authentication
+  - Returns: List of profiles matching user's preferences (opposite gender, online, within distance/age range)
+  - Filters based on:
+    - Opposite gender
+    - Online status
+    - Distance within user's preference radius (haversine calculation)
+    - Age within user's preference range (min_age to max_age)
+  - Returns empty list if user has no profile or no coordinates
+  - Uses default preferences (18-99 age, 50km radius) if not set
+  - Response format: `{"map_profiles": [...]}`
+
 ### Protected Endpoints
 
 All protected endpoints require authentication via Bearer token in the Authorization header:
@@ -470,12 +491,18 @@ The Profile model (`app/models/profile.py`) includes:
 - `date_of_birth`: Date (required)
 - `bio`: String (required)
 - `online`: Boolean (default: True)
+- `current_coordinates`: String (nullable, format: "lat,lng" e.g. "-1.2921,36.8219")
+- `preferences`: JSON (nullable, format: `{"min_age": int, "max_age": int, "distance": float}`)
 - `user`: Relationship back to User model
 - Inherits all BaseModel fields
 
 **Constraints:**
 - One-to-one relationship with User (enforced by unique constraint on `user_id`)
 - `phone_number` must be unique across all profiles
+
+**Features:**
+- Location tracking via `current_coordinates` for map-based matching
+- User preferences for age range and distance filtering in map view
 
 ### Photo Model
 
@@ -560,11 +587,13 @@ The PaymentPlan model (`app/models/payment_plan.py`) includes:
   - `v1/photos.py`: Photo upload endpoints
   - `v1/payments.py`: Payment endpoints
   - `v1/payment_plans.py`: Payment plan endpoints
+  - `v1/profiles.py`: Profile location and map endpoints
 - `app/core/`: Core functionality (config, security, S3, Daraja)
   - `config.py`: Application settings (database, JWT, AWS S3, Daraja)
   - `security.py`: JWT and password hashing
   - `s3_helper.py`: AWS S3 upload helper functions
   - `daraja_helper.py`: Safaricom Daraja M-Pesa helper functions
+  - `geo.py`: Geographic utility functions (coordinate parsing, haversine distance, age calculation)
 - `app/database.py`: Database connection and session management
 
 ### Running Tests

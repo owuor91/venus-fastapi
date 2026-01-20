@@ -33,6 +33,7 @@ class PaymentPlanCreateRequest(BaseModel):
     active: bool = True
     meta: Optional[Dict[str, Any]] = None
 
+
 class PaymentPlanInDB(PaymentPlanBase):
     plan_id: UUID
     date_created: datetime

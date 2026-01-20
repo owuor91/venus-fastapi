@@ -14,11 +14,21 @@ class Photo(BaseModel):
     """
     __tablename__ = "photos"
 
-    photo_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True)
+    photo_id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=False,
+        index=True
+    )
     photo_url = Column(String, nullable=False)
     verified = Column(Boolean, nullable=False, default=False)
-    
+
     # Relationship to User
     user = relationship("User", backref="photos")
 
