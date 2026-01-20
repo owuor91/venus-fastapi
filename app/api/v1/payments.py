@@ -1,6 +1,9 @@
 import logging
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -27,13 +30,33 @@ def create_payment(
     Create a new payment.
     Requires authentication.
     user_id is automatically set from the authenticated user.
+    payment_date is automatically set to current timestamp.
+    valid_until is automatically calculated based on payment plan's months.
     """
+    # Get payment plan to calculate valid_until
+    plan = db.query(PaymentPlan).filter(
+        PaymentPlan.plan_id == payment_data.plan_id,
+        PaymentPlan.active == True
+    ).first()
+    
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan_id or plan is not active"
+        )
+    
+    # Set payment_date to current timestamp
+    payment_date = datetime.now(timezone.utc)
+    
+    # Calculate valid_until: current time + plan.months
+    valid_until = payment_date + relativedelta(months=plan.months)
+    
     # Create payment record
     db_payment = Payment(
         user_id=current_user.user_id,
         payment_ref=payment_data.payment_ref,
-        payment_date=payment_data.payment_date,
-        valid_until=payment_data.valid_until,
+        payment_date=payment_date,
+        valid_until=valid_until,
         amount=payment_data.amount,
         plan_id=payment_data.plan_id,
         mpesa_transaction_id=payment_data.mpesa_transaction_id,
@@ -181,12 +204,18 @@ def initiate_stk_payment(
             detail="Invalid plan_id or plan is not active"
         )
     
+    # Set payment_date to current timestamp
+    payment_date = datetime.now(timezone.utc)
+    
+    # Calculate valid_until: current time + plan.months
+    valid_until = payment_date + relativedelta(months=plan.months)
+    
     # Create payment record
     db_payment = Payment(
         user_id=current_user.user_id,
         payment_ref=payment_data.payment_ref,
-        payment_date=payment_data.payment_date,
-        valid_until=payment_data.valid_until,
+        payment_date=payment_date,
+        valid_until=valid_until,
         amount=payment_data.amount,
         plan_id=payment_data.plan_id,
         mpesa_transaction_id=payment_data.mpesa_transaction_id,
@@ -221,7 +250,7 @@ def initiate_stk_payment(
 
 @router.post("/callback")
 def daraja_callback(
-    callback_data: Dict[str, Any],
+    callback_data: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db)
 ):
     """
@@ -240,7 +269,10 @@ def daraja_callback(
         if result_code != 0:
             logger.warning(f"Payment failed with result code: {result_code}")
             logger.debug(f"Result description: {stk_callback.get('ResultDesc')}")
-            return {"status": "received", "result_code": result_code}
+            return JSONResponse(
+                content={"status": "received", "result_code": result_code},
+                status_code=status.HTTP_200_OK
+            )
         
         # Extract callback metadata
         checkout_request_id = stk_callback.get("CheckoutRequestID")
@@ -249,7 +281,10 @@ def daraja_callback(
         
         if not checkout_request_id:
             logger.error("CheckoutRequestID not found in callback")
-            return {"status": "error", "message": "CheckoutRequestID not found"}, 400
+            return JSONResponse(
+                content={"status": "error", "message": "CheckoutRequestID not found"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         
         # Find payment by checkout request ID
         payment = db.query(Payment).filter(
@@ -258,7 +293,10 @@ def daraja_callback(
         
         if not payment:
             logger.error(f"Payment not found for CheckoutRequestID: {checkout_request_id}")
-            return {"status": "error", "message": "Payment not found"}, 404
+            return JSONResponse(
+                content={"status": "error", "message": "Payment not found"},
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         
         # Extract payment details from callback metadata
         amount = 0
@@ -308,8 +346,14 @@ def daraja_callback(
                 logger.error(f"Failed to send payment notification: {str(e)}", exc_info=True)
         
         logger.info(f"Payment {payment.payment_id} updated successfully from callback")
-        return {"status": "success", "payment_id": str(payment.payment_id)}
+        return JSONResponse(
+            content={"status": "success", "payment_id": str(payment.payment_id)},
+            status_code=status.HTTP_200_OK
+        )
         
     except Exception as e:
         logger.error(f"Error processing Daraja callback: {str(e)}", exc_info=True)
-        return {"status": "error", "message": str(e)}, 500
+        return JSONResponse(
+            content={"status": "error", "message": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

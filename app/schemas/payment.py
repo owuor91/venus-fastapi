@@ -22,8 +22,6 @@ class PaymentBase(BaseModel):
 class PaymentCreateRequest(BaseModel):
     """Request schema for creating a payment."""
     payment_ref: Optional[str] = None
-    payment_date: datetime
-    valid_until: datetime
     amount: float
     plan_id: UUID
     phone_number: Optional[str] = None  # Used for STK push initiation, not stored in database

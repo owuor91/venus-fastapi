@@ -25,8 +25,8 @@ def create_payment_plan(
         plan=payment_plan.plan,
         amount=payment_plan.amount,
         months=payment_plan.months,
-        created_by=current_user.user_id,
-        updated_by=current_user.user_id,
+        created_by=str(current_user.user_id),
+        updated_by=str(current_user.user_id),
         active=payment_plan.active,
         meta=payment_plan.meta,
     )
