@@ -22,6 +22,15 @@ class Settings(BaseSettings):
     # Firebase
     FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
     
+    # Safaricom Daraja M-Pesa
+    DARAJA_CREDENTIALS_URL: str = ""
+    CONSUMER_KEY: str = ""
+    CONSUMER_SECRET: str = ""
+    DARAJA_STK_PUSH_URL: str = ""
+    SHORT_CODE: str = ""
+    DARAJA_PASSKEY: str = ""
+    DARAJA_CALLBACK_URL: str = ""
+    
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=True,

@@ -1,3 +1,4 @@
+from typing import List
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
@@ -49,3 +50,21 @@ def upload_photo(
     db.refresh(db_photo)
     
     return db_photo
+
+
+@router.get("", response_model=List[PhotoSchema])
+def get_user_photos(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all active photos for the authenticated user.
+    Requires authentication.
+    Only returns active photos.
+    """
+    photos = db.query(Photo).filter(
+        Photo.user_id == current_user.user_id,
+        Photo.active == True
+    ).all()
+    
+    return photos

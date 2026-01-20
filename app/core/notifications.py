@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.user import User
 from app.models.match import Match
+from app.models.payment import Payment
 
 logger = logging.getLogger(__name__)
 
@@ -104,12 +105,12 @@ class Notifications:
         except Exception as e:
             logger.error(f"Failed to send chat notification: {str(e)}", exc_info=True)
 
-    def send_payment_notification(self, payment: Dict, fcm_token: str) -> None:
+    def send_payment_notification(self, payment: Payment, fcm_token: str) -> None:
         """
         Send a payment notification to a user.
         
         Args:
-            payment: Dictionary containing payment notification data
+            payment: Payment SQLAlchemy model instance
             fcm_token: FCM token of the recipient user
         """
         if not fcm_token:
@@ -117,12 +118,21 @@ class Notifications:
             return
 
         try:
-            payment_message = {}
-            payment_message["title"] = "Payment received"
-            # Convert payment amounts to strings for JSON
-            if "amount" in payment:
-                payment["amount"] = str(payment["amount"])
-            payment_message["payment"] = json.dumps(payment)
+            # Convert payment model to dict for FCM message
+            payment_dict = {
+                "payment_id": str(payment.payment_id),
+                "user_id": str(payment.user_id),
+                "amount": str(payment.amount),
+                "payment_ref": payment.payment_ref or "",
+                "transaction_status": payment.transaction_status or "",
+                "plan_id": str(payment.plan_id),
+            }
+            
+            payment_message = {
+                "title": "Payment received",
+                "type": "payment",
+                "payment_data": json.dumps(payment_dict)
+            }
 
             message = messaging.Message(
                 data=payment_message,
